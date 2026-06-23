@@ -1,0 +1,105 @@
+
+-- =========================================================
+-- TELCO CUSTOMER CHURN ANALYSIS PROJECT
+-- Author: Jeremy Rotich
+-- Purpose: Data cleaning + exploratory analysis + KPI building
+-- =========================================================
+
+
+-- =========================================================
+-- 1. DATA UNDERSTANDING
+-- =========================================================
+
+-- View sample data
+SELECT TOP 10 *
+FROM [Telco-Customer-Churn];
+
+-- Check dataset structure
+SELECT 
+    COLUMN_NAME,
+    DATA_TYPE,
+    IS_NULLABLE
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = 'Telco-Customer-Churn';
+
+-- Explore categorical values
+SELECT DISTINCT Churn FROM [Telco-Customer-Churn];
+SELECT DISTINCT Contract FROM [Telco-Customer-Churn];
+SELECT DISTINCT PaymentMethod FROM [Telco-Customer-Churn];
+
+
+-- =========================================================
+-- 2. DATA CLEANING
+-- =========================================================
+
+-- Handle NULL values in MultipleLines
+UPDATE [Telco-Customer-Churn]
+SET MultipleLines = 'No'
+WHERE MultipleLines IS NULL;
+
+-- Ensure correct data type
+ALTER TABLE [Telco-Customer-Churn]
+ALTER COLUMN MultipleLines VARCHAR(10);
+
+
+-- Standardize Yes/No columns
+UPDATE [Telco-Customer-Churn]
+SET 
+    OnlineSecurity = CASE WHEN OnlineSecurity = 'Yes' THEN 'Yes' ELSE 'No' END,
+    OnlineBackup = CASE WHEN OnlineBackup = 'Yes' THEN 'Yes' ELSE 'No' END,
+    DeviceProtection = CASE WHEN DeviceProtection = 'Yes' THEN 'Yes' ELSE 'No' END,
+    TechSupport = CASE WHEN TechSupport = 'Yes' THEN 'Yes' ELSE 'No' END,
+    StreamingTV = CASE WHEN StreamingTV = 'Yes' THEN 'Yes' ELSE 'No' END,
+    StreamingMovies = CASE WHEN StreamingMovies = 'Yes' THEN 'Yes' ELSE 'No' END;
+
+
+-- Clean MultipleLines values
+UPDATE [Telco-Customer-Churn]
+SET MultipleLines = 
+    CASE 
+        WHEN MultipleLines IN ('1', 'Yes') THEN 'Yes'
+        ELSE 'No'
+    END;
+
+-- Data quality check
+SELECT *
+FROM [Telco-Customer-Churn]
+WHERE MultipleLines IS NULL
+   OR OnlineSecurity IS NULL
+   OR InternetService IS NULL;
+
+
+-- =========================================================
+-- 3. FEATURE ENGINEERING
+-- =========================================================
+
+-- Create churn flag
+SELECT *,
+       CASE 
+           WHEN Churn = 'Yes' THEN 1
+           ELSE 0
+       END AS ChurnFlag
+FROM [Telco-Customer-Churn];
+
+
+-- =========================================================
+-- 4. BUSINESS KPIs (CORE ANALYTICS)
+-- =========================================================
+
+-- Overall churn rate
+SELECT
+    COUNT(*) AS TotalCustomers,
+    SUM(CASE WHEN Churn = 'Yes' THEN 1 ELSE 0 END) AS ChurnedCustomers,
+    CAST(
+        100.0 * SUM(CASE WHEN Churn = 'Yes' THEN 1 ELSE 0 END) / COUNT(*)
+        AS DECIMAL(5,2)
+    ) AS ChurnRate
+FROM [Telco-Customer-Churn];
+
+
+-- =========================================================
+-- 5. QUICK DATA VALIDATION
+-- =========================================================
+
+SELECT TOP 10 *
+FROM [Telco-Customer-Churn];
